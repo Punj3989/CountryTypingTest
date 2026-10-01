@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>apna word · typing test</title>
+    <title>apna word · typing test (auto next + timer + speak)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,7 +26,7 @@
             backdrop-filter: blur(12px);
             border-radius: 48px;
             padding: 40px 36px;
-            max-width: 1000px;
+            max-width: 1100px;
             width: 100%;
             box-shadow: 0 30px 45px -15px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
             border: 1px solid rgba(255, 255, 255, 0.03);
@@ -56,45 +56,186 @@
             letter-spacing: 0.3px;
         }
 
-        .current-word-panel {
+        /* 🕐 DIGITAL TIMER BADGE */
+        .timer-badge {
+            background: #1a2230;
+            padding: 6px 18px;
+            border-radius: 60px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #9fda8f;
+            border: 1px solid #3a5a3a;
+            letter-spacing: 2px;
+            font-family: 'Fira Mono', 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 12px rgba(159, 218, 143, 0.15);
+        }
+
+        .timer-badge .timer-icon {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .timer-badge.running {
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 8px rgba(159, 218, 143, 0.2); }
+            100% { box-shadow: 0 0 18px rgba(159, 218, 143, 0.4); }
+        }
+
+        /* 🔊 SPEAK TOGGLE BADGE */
+        .speak-badge {
+            background: #1a2230;
+            padding: 6px 18px;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #84a6e0;
+            border: 1px solid #2c384b;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .speak-badge:hover {
+            background: #243048;
+            border-color: #4a6a9a;
+        }
+
+        .speak-badge.on {
+            background: #1a2a1a;
+            border-color: #3a5a3a;
+            color: #9fda8f;
+            box-shadow: 0 0 12px rgba(159, 218, 143, 0.2);
+        }
+
+        .speak-badge.off {
+            background: #2a1a1a;
+            border-color: #5a3a3a;
+            color: #e08585;
+        }
+
+        .word-stream-panel {
             background: #0b0f17;
             border-radius: 28px;
             padding: 28px 24px;
             margin-bottom: 26px;
             border: 1px solid #242b38;
             box-shadow: 0 12px 24px -12px #00000080;
-            text-align: center;
+            height: 220px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
         }
 
-        .word-display {
-            font-size: 4rem;
-            font-weight: 600;
-            letter-spacing: 4px;
-            color: #e2e9f5;
-            word-break: break-word;
-            line-height: 1.3;
-            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+        .word-stream-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+        .word-stream-panel::-webkit-scrollbar-track {
+            background: #0b0f17;
+            border-radius: 10px;
+        }
+        .word-stream-panel::-webkit-scrollbar-thumb {
+            background: #2f394b;
+            border-radius: 10px;
+        }
+        .word-stream-panel::-webkit-scrollbar-thumb:hover {
+            background: #4a5a75;
+        }
+
+        .word-stream {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 22px;
             font-family: 'Fira Mono', 'JetBrains Mono', monospace;
-            transition: all 0.1s ease;
+            font-size: 1.5rem;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+            width: 100%;
+            padding: 10px 0;
         }
 
-        .word-display.correct-highlight {
-            color: #9fda8f;
-            text-shadow: 0 0 12px #3f8740;
+        .word-stream .word {
+            color: #6b7d9c;
+            transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            padding: 2px 6px;
+            border-radius: 8px;
+            white-space: nowrap;
+            scroll-margin: 80px;
         }
 
-        .word-display.skip-highlight {
-            color: #f0c674;
-            text-shadow: 0 0 12px #b88a2c;
+        .word-stream .word.done {
+            color: #3f5f3f;
+            opacity: 0.35;
+        }
+
+        .word-stream .word.active {
+            color: #eef3fc;
+            background: #18243a;
+            box-shadow: 0 0 0 2px #4a6a9a;
+        }
+
+        .word-stream .word.error {
+            color: #f08080;
+            background: #2a1416;
+            box-shadow: 0 0 0 2px #a04040;
+        }
+
+        .word-stream .word.skipped {
+            color: #d4b060;
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .typing-input {
+            width: 100%;
+            background: #0e121b;
+            border: 2px solid #2f394b;
+            border-radius: 28px;
+            padding: 22px 28px;
+            font-size: 1.6rem;
+            font-family: 'Fira Mono', 'JetBrains Mono', monospace;
+            color: #eef3fc;
+            outline: none;
+            transition: 0.15s;
+            letter-spacing: 1.5px;
+            box-shadow: 0 10px 20px -10px #000000b0;
+            margin-bottom: 20px;
+        }
+
+        .typing-input:focus {
+            border-color: #6d8ec9;
+            background: #121a28;
+            box-shadow: 0 0 0 5px rgba(109, 142, 201, 0.2);
+        }
+
+        .typing-input.correct-glow {
+            border-color: #6fae6f;
+            box-shadow: 0 0 0 5px rgba(111, 174, 111, 0.2);
+            background: #111c16;
+        }
+
+        .typing-input.error-glow {
+            border-color: #c76b6b;
+            box-shadow: 0 0 0 5px rgba(199, 107, 107, 0.2);
+            background: #1a1214;
         }
 
         .stats-bar {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 18px;
-            padding: 0 10px;
             flex-wrap: wrap;
         }
 
@@ -123,44 +264,6 @@
             font-family: 'Fira Mono', monospace;
             min-width: 50px;
             text-align: center;
-        }
-
-        .input-wrapper {
-            position: relative;
-            margin-bottom: 28px;
-        }
-
-        .typing-input {
-            width: 100%;
-            background: #0e121b;
-            border: 2px solid #2f394b;
-            border-radius: 28px;
-            padding: 22px 28px;
-            font-size: 1.6rem;
-            font-family: 'Fira Mono', 'JetBrains Mono', monospace;
-            color: #eef3fc;
-            outline: none;
-            transition: 0.15s;
-            letter-spacing: 1.5px;
-            box-shadow: 0 10px 20px -10px #000000b0;
-        }
-
-        .typing-input:focus {
-            border-color: #6d8ec9;
-            background: #121a28;
-            box-shadow: 0 0 0 5px rgba(109, 142, 201, 0.2);
-        }
-
-        .typing-input.correct-glow {
-            border-color: #6fae6f;
-            box-shadow: 0 0 0 5px rgba(111, 174, 111, 0.2);
-            background: #111c16;
-        }
-
-        .typing-input.error-glow {
-            border-color: #c76b6b;
-            box-shadow: 0 0 0 5px rgba(199, 107, 107, 0.2);
-            background: #1a1214;
         }
 
         .actions {
@@ -208,6 +311,18 @@
             color: #ffe8b0;
         }
 
+        .actions button.speak-btn {
+            background: #1f2a3a;
+            border-color: #3a4a6a;
+            color: #84a6e0;
+        }
+
+        .actions button.speak-btn:hover {
+            background: #2a3a52;
+            border-color: #5a7aa0;
+            color: #a8c4ff;
+        }
+
         .message-box {
             text-align: center;
             margin-top: 24px;
@@ -240,26 +355,222 @@
             border: 1px solid #2c384b;
             margin-left: 10px;
         }
+
+        .wpm-badge-live {
+            background: #1a2a1a;
+            border-color: #3a5a3a;
+            color: #9fda8f;
+        }
+
+        .result-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 8, 14, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .result-overlay.show {
+            display: flex;
+        }
+
+        .result-card {
+            background: linear-gradient(145deg, #141a26 0%, #1c2434 100%);
+            border-radius: 40px;
+            padding: 44px 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid #2f3a4e;
+            box-shadow: 0 30px 60px -20px #000000e0;
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-card h2 {
+            font-size: 1.6rem;
+            font-weight: 500;
+            color: #eef3fc;
+            margin-bottom: 8px;
+        }
+
+        .result-sub {
+            font-size: 0.9rem;
+            color: #6b7d9c;
+            margin-bottom: 28px;
+        }
+
+        .wpm-display {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #9fda8f;
+            font-family: 'Fira Mono', monospace;
+            line-height: 1;
+            margin-bottom: 6px;
+            text-shadow: 0 0 30px rgba(159, 218, 143, 0.35);
+            letter-spacing: -2px;
+        }
+
+        .wpm-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #6b7d9c;
+            margin-bottom: 32px;
+        }
+
+        .time-display {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #84a6e0;
+            font-family: 'Fira Mono', monospace;
+            line-height: 1;
+            margin-bottom: 6px;
+            text-shadow: 0 0 20px rgba(132, 166, 224, 0.35);
+            letter-spacing: 1px;
+        }
+
+        .time-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #6b7d9c;
+            margin-bottom: 28px;
+        }
+
+        .result-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+
+        .result-stat-box {
+            background: #0e131d;
+            border-radius: 20px;
+            padding: 16px 12px;
+            border: 1px solid #232c3b;
+        }
+
+        .result-stat-box .rs-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #5d6d88;
+            margin-bottom: 6px;
+        }
+
+        .result-stat-box .rs-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #d6e3ff;
+            font-family: 'Fira Mono', monospace;
+        }
+
+        .result-stat-box .rs-value.green { color: #9fda8f; }
+        .result-stat-box .rs-value.red { color: #e08585; }
+        .result-stat-box .rs-value.yellow { color: #f0c674; }
+
+        .result-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .result-actions button {
+            border: none;
+            border-radius: 60px;
+            padding: 14px 32px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+
+        .result-actions .btn-primary {
+            background: linear-gradient(135deg, #4a7a4a 0%, #3a663a 100%);
+            color: #e8f5e0;
+            box-shadow: 0 8px 20px -8px rgba(74, 122, 74, 0.6);
+        }
+
+        .result-actions .btn-primary:hover {
+            background: linear-gradient(135deg, #5a8f5a 0%, #4a7a4a 100%);
+            transform: translateY(-2px);
+        }
+
+        .result-actions .btn-secondary {
+            background: #232c3b;
+            color: #b9c8e6;
+            border: 1px solid #364153;
+        }
+
+        .result-actions .btn-secondary:hover {
+            background: #2d384b;
+            color: #ffffff;
+        }
+
+        @media (max-width: 700px) {
+            .word-stream {
+                font-size: 1.1rem;
+                gap: 8px 14px;
+            }
+            .word-stream-panel {
+                height: 180px;
+            }
+            .timer-badge {
+                font-size: 0.85rem;
+                padding: 4px 14px;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="test-container">
     <h1>
         ⌨️ apna word
-        <span>typing test</span>
-        <span class="progress-badge" id="progressBadge">1 / 1000</span>
+        <span id="wordCountBadge">countries</span>
+        <span class="progress-badge" id="progressBadge">1 / 0</span>
+        <span class="timer-badge" id="timerBadge">
+            <span class="timer-icon">⏱</span>
+            <span id="timerDisplay">00:00.0</span>
+        </span>
+        <!-- 🔊 SPEAK TOGGLE -->
+        <span class="speak-badge on" id="speakToggle" title="Click to toggle voice">
+            <span id="speakIcon">🔊</span>
+            <span id="speakLabel">Voice ON</span>
+        </span>
     </h1>
 
-    <!-- current word display -->
-    <div class="current-word-panel">
-        <div class="word-display" id="wordDisplay">access</div>
+    <div class="word-stream-panel" id="wordStreamPanel">
+        <div class="word-stream" id="wordStream"></div>
     </div>
 
-    <!-- stats -->
+    <input type="text" id="typingInput" class="typing-input" placeholder="type here..." autocomplete="off" spellcheck="false" autofocus>
+
     <div class="stats-bar">
         <div class="stat-item">
             <span class="stat-label">accuracy</span>
             <span class="stat-value" id="accuracyStat">100%</span>
+        </div>
+        <div class="stat-item wpm-badge-live" id="wpmLiveBadge">
+            <span class="stat-label">wpm</span>
+            <span class="stat-value" id="wpmStat">0</span>
         </div>
         <div class="stat-item">
             <span class="stat-label">errors</span>
@@ -275,15 +586,12 @@
         </div>
     </div>
 
-    <!-- typing area -->
-    <div class="input-wrapper">
-        <input type="text" id="typingInput" class="typing-input" placeholder="type here..." autocomplete="off" spellcheck="false" autofocus>
-    </div>
-
-    <!-- actions -->
-    <div class="actions">
+    <div class="actions" style="margin-top: 18px;">
         <button id="skipBtn" class="skip-btn" title="Skip this word (Alt + S)">
             <span>⏭</span> Skip word
+        </button>
+        <button id="speakBtn" class="speak-btn" title="Speak current word again">
+            <span>🔊</span> Speak word
         </button>
         <button id="restartBtn" title="Restart entire test">
             <span>⟳</span> Restart test
@@ -291,238 +599,300 @@
     </div>
 
     <div id="messageBox" class="message-box"></div>
-    <div class="footer-note">press <span class="accent-badge">Alt + S</span> to skip · word auto-changes when typed correctly</div>
+    <div class="footer-note">
+        word complete hote hi automatic next · 
+        <span class="accent-badge">Enter</span> to skip wrong word · 
+        <span class="accent-badge">Alt + S</span> to skip · 
+        <span class="accent-badge">🔊</span> voice toggle
+    </div>
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+    <div class="result-card">
+        <h2>🎉 test complete!</h2>
+        <div class="result-sub">aapka typing result</div>
+
+        <div class="wpm-display" id="finalWpm">0</div>
+        <div class="wpm-label">words per minute</div>
+
+        <div class="time-display" id="finalTime">00:00.0</div>
+        <div class="time-label">total time</div>
+
+        <div class="result-stats-grid">
+            <div class="result-stat-box">
+                <div class="rs-label">accuracy</div>
+                <div class="rs-value green" id="finalAccuracy">100%</div>
+            </div>
+            <div class="result-stat-box">
+                <div class="rs-label">total typed</div>
+                <div class="rs-value" id="finalTyped">0</div>
+            </div>
+            <div class="result-stat-box">
+                <div class="rs-label">errors</div>
+                <div class="rs-value red" id="finalErrors">0</div>
+            </div>
+            <div class="result-stat-box">
+                <div class="rs-label">skipped</div>
+                <div class="rs-value yellow" id="finalSkipped">0</div>
+            </div>
+        </div>
+
+        <div class="result-actions">
+            <button class="btn-primary" id="playAgainBtn">
+                <span>⟳</span> play again
+            </button>
+            <button class="btn-secondary" id="closeResultBtn">
+                close
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
     // ============================================================
-    // YAHAN APNE SAARE 1000 WORDS PASTE KARO
-    // (bilkul waise hi jaise aapke paas hain - new line se separated)
-    // Koi comma ya quote lagane ki zaroorat nahi!
+    // FULL COUNTRY LIST (200+)
     // ============================================================
     const RAW_WORDS = `
-Afghanistan
-Albania
-Algeria
-Andorra
-Angola
-Antigua and Barbuda
-Argentine
-Armenia
-Australia
-Austria
-Azerbaijan
-Bahamas
-Bahrain
-Bangladesh
-Barbados
-Belarus
-Belgium
-Belize
-Benin
-Bhutan
-Bolivia
-Bosnia and Herzegovina
-Botswana
-Brazil
-Brunei
-Bulgaria
-Burkina Faso
-Burundi
-Cambodia
-Cameroon
-Canada
-Cape Verde
-Central African Republic
-Chad
-Chile
-China
-Colombia
-Comoros
-Republic of Congo
-Democratic Republic of the Congo
-Cook
-Costa Rica
-Cote d Ivoire
-Croatia
-Cuba
-Cyprus
-Czech Republic
-Page Top
-Denmark
-Djibouti
-Dominica
-Dominican Republic
-Ecuador
-Egypt
-El Salvador
-Equatorial Guinea
-Eritrea
-Estonia
-Eswatini
-Ethiopia
-Fiji
-Finland
-France
-Gabon
-Gambia
-Georgia
-Germany
-Ghana
-Greece
-Grenada
-Guatemala
-Guinea
-Guinea-Bissau
-Guyana
-Haiti
-Honduras
-Hungary
-Iceland
-India
-Indonesia
-Iran
-Iraq
-Ireland
-Israel
-Italy
-Jamaica
-Jordan
-Page Top
-Kazakhstan
-Kenya
-Kiribati
-Republic of Korea
-Kosovo
-Kuwait
-Kyrgyz Republic
-Laos
-Latvia
-Lebanon
-Lesotho
-Liberia
-Libya
-Liechtenstein
-Lithuania
-Luxembourg
-Madagascar
-Malawi
-Malaysia
-Maldives
-Mali
-Malta
-Marshall
-Mauritania
-Mauritius
-Mexico
-Micronesia
-Moldova
-Monaco
-Mongolia
-Montenegro
-Morocco
-Mozambique
-Myanmar
-Namibia
-Nauru
-Nepal
-Netherlands
-New Zealand
-Nicaragua
-Niger
-Nigeria
-Niue
-North Macedonia
-Norway
-Oman
-Page Top
-Pakistan
-Palau
-Panama
-Papua New Guinea
-Paraguay
-Peru
-Philippines
-Poland
-Portugal
-Qatar
-Romania
-Russia
-Rwanda
-Saint Christopher and Nevis
-Saint Lucia
-Saint Vincent
-Samoa
-San Marino
-Sao Tome and Principe
-Saudi Arabia
-Senegal
-Serbia
-Seychelles
-Sierra Leone
-Singapore
-Slovakia
-Slovenia
-Solomon
-Somalia
-Republic of South Africa
-South Sudan
-Spain
-Sri Lanka
-Sudan
-Suriname
-Sweden
-Switzerland
-Syria
-Tajikistan
-Tanzania
-Thailand
-Timor-Leste
-Togo
-Tonga
-Trinidad and Tobago
-Tunisia
-Republic of Türkiye
-Turkmenistan
-Tuvalu
-Uganda
-Ukraine
-United Arab Emirates
-United Kingdom
-United States of America
-Uruguay
-Uzbekistan
-Vanuatu
-Vatican
-Venezuela
-Viet Nam
-Yemen
-Zambia
-Zimbabwe
+afghanistan
+albania
+algeria
+andorra
+angola
+antigua and barbuda
+argentine
+armenia
+australia
+austria
+azerbaijan
+bahamas
+bahrain
+bangladesh
+barbados
+belarus
+belgium
+belize
+benin
+bhutan
+bolivia
+bosnia herzegovina
+botswana
+brazil
+brunei
+bulgaria
+burkina faso
+burundi
+cambodia
+cameroon
+canada
+cape verde
+central and african republic
+chad
+chile
+china
+colombia
+comoros
+republic of congo
+democratic republic of congo
+costa rica
+cote d ivoire
+croatia
+cuba
+cyprus
+czechia
+denmark
+djibouti
+dominica
+dominican republic
+ecuador
+egypt
+el salvador
+equatorial guinea
+eritrea
+estonia
+eswatini
+ethiopia
+fiji
+finland
+france
+gabon
+gambia
+georgia
+germany
+ghana
+greece
+grenada
+guatemala
+guinea
+guinea-bissau
+guyana
+haiti
+honduras
+hungary
+iceland
+india
+indonesia
+iran
+iraq
+ireland
+israel
+italy
+jamaica
+jordan
+kazakhstan
+kenya
+kiribati
+republic of korea
+kosovo
+kuwait
+kyrgyzstan
+laos
+latvia
+lebanon
+lesotho
+liberia
+libya
+liechtenstein
+lithuania
+luxembourg
+madagascar
+malawi
+malaysia
+maldives
+mali
+malta
+marshall
+mauritania
+mauritius
+mexico
+micronesia
+moldova
+monaco
+mongolia
+montenegro
+morocco
+mozambique
+myanmar
+namibia
+nauru
+nepal
+netherlands
+new zealand
+nicaragua
+niger
+nigeria
+macedonia
+norway
+oman
+pakistan
+palau
+panama
+papua new guinea
+paraguay
+peru
+philippines
+poland
+portugal
+qatar
+romania
+russia
+rwanda
+saint kitts and nevis
+saint lucia
+saint vincent
+samoa
+san marino
+sao tome principe
+saudi arabia
+senegal
+serbia
+seychelles
+sierra leone
+singapore
+slovakia
+slovenia
+solomon islands
+somalia
+south africa
+south sudan
+spain
+sri lanka
+sudan
+suriname
+sweden
+switzerland
+syria
+tajikistan
+tanzania
+thailand
+east timor
+togo
+tonga
+trinidad and tobago
+tunisia
+turkey
+turkmenistan
+tuvalu
+uganda
+ukraine
+uae
+uk
+usa
+uruguay
+uzbekistan
+vanuatu
+vatican
+venezuela
+vietnam
+yemen
+zambia
+zimbabwe
     `;
-    // ============================================================
 
-    // Automatically words ko array me convert karo
     const WORD_LIST = RAW_WORDS
-        .split(/[\n\r,]+/)           // new line ya comma se split
-        .map(w => w.trim())          // extra spaces hatao
-        .filter(w => w.length > 0);  // empty lines hatao
+        .split(/[\n\r,]+/)
+        .map(w => w.trim())
+        .filter(w => w.length > 0);
 
     // ----- DOM elements -----
-    const wordDisplay = document.getElementById('wordDisplay');
+    const wordStreamPanel = document.getElementById('wordStreamPanel');
+    const wordStream = document.getElementById('wordStream');
     const typingInput = document.getElementById('typingInput');
     const accuracyStat = document.getElementById('accuracyStat');
     const errorStat = document.getElementById('errorStat');
     const typedStat = document.getElementById('typedStat');
     const skippedStat = document.getElementById('skippedStat');
+    const wpmStat = document.getElementById('wpmStat');
     const restartBtn = document.getElementById('restartBtn');
     const skipBtn = document.getElementById('skipBtn');
+    const speakBtn = document.getElementById('speakBtn');
     const messageBox = document.getElementById('messageBox');
     const progressBadge = document.getElementById('progressBadge');
+    const wordCountBadge = document.getElementById('wordCountBadge');
+
+    // 🕐 timer elements
+    const timerBadge = document.getElementById('timerBadge');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const finalTime = document.getElementById('finalTime');
+
+    // 🔊 speak toggle
+    const speakToggle = document.getElementById('speakToggle');
+    const speakIcon = document.getElementById('speakIcon');
+    const speakLabel = document.getElementById('speakLabel');
+
+    const resultOverlay = document.getElementById('resultOverlay');
+    const finalWpm = document.getElementById('finalWpm');
+    const finalAccuracy = document.getElementById('finalAccuracy');
+    const finalTyped = document.getElementById('finalTyped');
+    const finalErrors = document.getElementById('finalErrors');
+    const finalSkipped = document.getElementById('finalSkipped');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const closeResultBtn = document.getElementById('closeResultBtn');
 
     // ----- state -----
-    let availableWords = [];
+    let allWords = [];
+    let currentIndex = 0;
     let currentWord = '';
+    let wordStatus = [];
 
     let sessionTotalTyped = 0;
     let sessionErrorCount = 0;
@@ -531,9 +901,63 @@ Zimbabwe
     let currentAttemptTotalTyped = 0;
     let currentAttemptErrors = 0;
 
-    let isTransitioning = false;  // to prevent double-trigger
+    let isTransitioning = false;
 
-    // ----- helper: shuffle array -----
+    let testStartTime = null;
+    let testEndTime = null;
+    let wpmInterval = null;
+    let timerInterval = null;
+
+    // 🔊 speech
+    let voiceEnabled = true;
+    let selectedVoice = null;
+
+    // ----- SPEECH SETUP -----
+    function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices || voices.length === 0) return;
+
+        selectedVoice =
+            voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-us')) ||
+            voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-gb')) ||
+            voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en')) ||
+            voices[0];
+    }
+
+    if ('speechSynthesis' in window) {
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+    } else {
+        voiceEnabled = false;
+        setTimeout(() => {
+            speakToggle.classList.remove('on');
+            speakToggle.classList.add('off');
+            speakIcon.textContent = '🔇';
+            speakLabel.textContent = 'No voice';
+            speakToggle.style.cursor = 'not-allowed';
+        }, 100);
+    }
+
+    function speakWord(word) {
+        if (!voiceEnabled) return;
+        if (!('speechSynthesis' in window)) return;
+        if (!word) return;
+
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // ----- helpers -----
     function shuffleArray(arr) {
         const a = [...arr];
         for (let i = a.length - 1; i > 0; i--) {
@@ -543,90 +967,108 @@ Zimbabwe
         return a;
     }
 
-    // ----- restart entire test -----
-    function restartTest() {
-        sessionTotalTyped = 0;
-        sessionErrorCount = 0;
-        sessionSkippedCount = 0;
-        currentAttemptTotalTyped = 0;
-        currentAttemptErrors = 0;
-        isTransitioning = false;
-
-        availableWords = shuffleArray(WORD_LIST);
-
-        currentWord = availableWords.shift();
-        wordDisplay.textContent = currentWord;
-
-        typingInput.value = '';
-        typingInput.disabled = false;
-        typingInput.placeholder = 'type here...';
-        typingInput.classList.remove('correct-glow', 'error-glow');
-        wordDisplay.classList.remove('correct-highlight', 'skip-highlight');
-
-        updateStatsDisplay();
-        updateProgressBadge();
-
-        showMessage('new test started — type the word!', '#84a6e0');
-        typingInput.focus();
+    function calculateWPM() {
+        if (!testStartTime) return 0;
+        const endTime = testEndTime || Date.now();
+        const minutesElapsed = (endTime - testStartTime) / 1000 / 60;
+        if (minutesElapsed <= 0) return 0;
+        return Math.max(0, Math.round((sessionTotalTyped / 5) / minutesElapsed));
     }
 
-    // ----- load next word -----
-    function loadNextWord() {
-        if (availableWords.length === 0) {
-            wordDisplay.textContent = '✓ done!';
-            wordDisplay.classList.remove('skip-highlight');
-            wordDisplay.classList.add('correct-highlight');
-            typingInput.disabled = true;
-            typingInput.placeholder = 'all words completed!';
-            showMessage('🎉 congratulations! you finished all words. press Restart to play again.', '#9fda8f');
-            progressBadge.textContent = `${WORD_LIST.length} / ${WORD_LIST.length}`;
+    function formatTime(ms) {
+        if (ms < 0) ms = 0;
+        const totalSeconds = ms / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        const tenths = Math.floor((ms % 1000) / 100);
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+    }
+
+    function updateTimerDisplay() {
+        if (!testStartTime) {
+            timerDisplay.textContent = '00:00.0';
             return;
         }
-
-        currentWord = availableWords.shift();
-        wordDisplay.textContent = currentWord;
-        wordDisplay.classList.remove('skip-highlight');
-
-        typingInput.value = '';
-        typingInput.classList.remove('correct-glow', 'error-glow');
-        wordDisplay.classList.remove('correct-highlight');
-
-        currentAttemptTotalTyped = 0;
-        currentAttemptErrors = 0;
-
-        updateStatsDisplay();
-        updateProgressBadge();
-
-        showMessage(`next: "${currentWord}"`, '#84a6e0');
-        typingInput.focus();
+        const now = testEndTime || Date.now();
+        const elapsed = now - testStartTime;
+        timerDisplay.textContent = formatTime(elapsed);
     }
 
-    // ----- skip current word -----
-    function skipWord() {
-        if (isTransitioning) return;
-        if (typingInput.disabled) return;  // already done
-
-        isTransitioning = true;
-
-        // count as skipped
-        sessionSkippedCount++;
-        skippedStat.textContent = sessionSkippedCount;
-
-        // yellow highlight
-        wordDisplay.classList.add('skip-highlight');
-        showMessage(`⏭ skipped: "${currentWord}"`, '#f0c674');
-
-        typingInput.disabled = true;
-
-        setTimeout(() => {
-            typingInput.disabled = false;
-            loadNextWord();
-            isTransitioning = false;
-            typingInput.focus();
-        }, 300);
+    function startWpmTracking() {
+        testStartTime = Date.now();
+        testEndTime = null;
+        if (wpmInterval) clearInterval(wpmInterval);
+        wpmInterval = setInterval(() => {
+            if (testStartTime && !testEndTime) {
+                wpmStat.textContent = calculateWPM();
+            }
+        }, 500);
     }
 
-    // ----- update stats display -----
+    function startTimerTracking() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerBadge.classList.add('running');
+        timerInterval = setInterval(() => {
+            if (testStartTime && !testEndTime) {
+                updateTimerDisplay();
+            }
+        }, 100);
+    }
+
+    function stopWpmTracking() {
+        testEndTime = Date.now();
+        if (wpmInterval) {
+            clearInterval(wpmInterval);
+            wpmInterval = null;
+        }
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+        timerBadge.classList.remove('running');
+        updateTimerDisplay();
+    }
+
+    function scrollToActiveWord() {
+        const activeEl = wordStream.querySelector('.word.active');
+        if (!activeEl) return;
+
+        const panelRect = wordStreamPanel.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+
+        const isAbove = activeRect.top < panelRect.top + 20;
+        const isBelow = activeRect.bottom > panelRect.bottom - 20;
+
+        if (isAbove || isBelow) {
+            const targetScroll = activeEl.offsetTop - (wordStreamPanel.clientHeight / 2) + (activeEl.clientHeight / 2);
+            wordStreamPanel.scrollTo({
+                top: Math.max(0, targetScroll),
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    function renderWordStream() {
+        wordStream.innerHTML = '';
+
+        allWords.forEach((word, idx) => {
+            const span = document.createElement('span');
+            span.className = 'word';
+            span.textContent = word;
+            span.dataset.index = idx;
+
+            const status = wordStatus[idx];
+            if (status === 'done') span.classList.add('done');
+            else if (status === 'active') span.classList.add('active');
+            else if (status === 'error') span.classList.add('error');
+            else if (status === 'skipped') span.classList.add('skipped');
+
+            wordStream.appendChild(span);
+        });
+
+        scrollToActiveWord();
+    }
+
     function updateStatsDisplay() {
         typedStat.textContent = sessionTotalTyped;
         errorStat.textContent = sessionErrorCount;
@@ -638,45 +1080,197 @@ Zimbabwe
             accuracy = Math.max(0, Math.round((correct / sessionTotalTyped) * 100));
         }
         accuracyStat.textContent = accuracy + '%';
-    }
 
-    // ----- update progress badge -----
-    function updateProgressBadge() {
-        const totalWords = WORD_LIST.length;
-        const completed = totalWords - availableWords.length;
-        if (availableWords.length === 0 && currentWord === '✓ done!') {
-            progressBadge.textContent = `${totalWords} / ${totalWords}`;
-        } else if (availableWords.length === 0) {
-            progressBadge.textContent = `${totalWords} / ${totalWords}`;
-        } else {
-            const currentIndex = completed + 1;
-            progressBadge.textContent = `${Math.min(currentIndex, totalWords)} / ${totalWords}`;
+        if (testStartTime && !testEndTime) {
+            wpmStat.textContent = calculateWPM();
         }
     }
 
-    // ----- show message -----
+    function updateProgressBadge() {
+        const total = allWords.length;
+        const doneCount = wordStatus.filter(s => s === 'done' || s === 'skipped').length;
+        if (doneCount >= total) {
+            progressBadge.textContent = `${total} / ${total}`;
+        } else {
+            progressBadge.textContent = `${doneCount + 1} / ${total}`;
+        }
+    }
+
     function showMessage(text, color = '#8a9bb8') {
         messageBox.textContent = text;
         messageBox.style.color = color;
     }
 
-    // ----- input handler -----
+    function moveToNextWord() {
+        let nextIdx = -1;
+        for (let i = currentIndex + 1; i < allWords.length; i++) {
+            if (wordStatus[i] === 'pending') {
+                nextIdx = i;
+                break;
+            }
+        }
+
+        if (nextIdx === -1) {
+            for (let i = 0; i < allWords.length; i++) {
+                if (wordStatus[i] === 'pending') {
+                    nextIdx = i;
+                    break;
+                }
+            }
+        }
+
+        if (nextIdx === -1) {
+            currentIndex = -1;
+            currentWord = '';
+            typingInput.value = '';
+            typingInput.disabled = true;
+            typingInput.placeholder = 'all words completed!';
+            showMessage('🎉 congratulations! you finished all countries.', '#9fda8f');
+            renderWordStream();
+            updateProgressBadge();
+
+            setTimeout(() => {
+                showResult();
+            }, 400);
+            return;
+        }
+
+        currentIndex = nextIdx;
+        currentWord = allWords[currentIndex];
+        wordStatus[currentIndex] = 'active';
+
+        typingInput.value = '';
+        typingInput.classList.remove('correct-glow', 'error-glow');
+
+        currentAttemptTotalTyped = 0;
+        currentAttemptErrors = 0;
+
+        renderWordStream();
+        updateStatsDisplay();
+        updateProgressBadge();
+
+        speakWord(currentWord);
+
+        showMessage(`next: "${currentWord}"`, '#84a6e0');
+        typingInput.focus();
+    }
+
+    function showResult() {
+        stopWpmTracking();
+
+        const wpm = calculateWPM();
+        let accuracy = 100;
+        if (sessionTotalTyped > 0) {
+            const correct = sessionTotalTyped - sessionErrorCount;
+            accuracy = Math.max(0, Math.round((correct / sessionTotalTyped) * 100));
+        }
+
+        finalWpm.textContent = wpm;
+        finalAccuracy.textContent = accuracy + '%';
+        finalTyped.textContent = sessionTotalTyped;
+        finalErrors.textContent = sessionErrorCount;
+        finalSkipped.textContent = sessionSkippedCount;
+
+        if (testStartTime && testEndTime) {
+            finalTime.textContent = formatTime(testEndTime - testStartTime);
+        } else {
+            finalTime.textContent = '00:00.0';
+        }
+
+        resultOverlay.classList.add('show');
+    }
+
+    function hideResult() {
+        resultOverlay.classList.remove('show');
+    }
+
+    function restartTest() {
+        hideResult();
+        if (wpmInterval) clearInterval(wpmInterval);
+        if (timerInterval) clearInterval(timerInterval);
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+
+        sessionTotalTyped = 0;
+        sessionErrorCount = 0;
+        sessionSkippedCount = 0;
+        currentAttemptTotalTyped = 0;
+        currentAttemptErrors = 0;
+        isTransitioning = false;
+        testStartTime = null;
+        testEndTime = null;
+
+        timerDisplay.textContent = '00:00.0';
+        timerBadge.classList.remove('running');
+
+        allWords = shuffleArray(WORD_LIST);
+        wordStatus = new Array(allWords.length).fill('pending');
+
+        currentIndex = 0;
+        currentWord = allWords[0];
+        wordStatus[0] = 'active';
+
+        typingInput.value = '';
+        typingInput.disabled = false;
+        typingInput.placeholder = 'type here...';
+        typingInput.classList.remove('correct-glow', 'error-glow');
+
+        updateStatsDisplay();
+        updateProgressBadge();
+        renderWordStream();
+        wpmStat.textContent = '0';
+
+        wordStreamPanel.scrollTop = 0;
+
+        speakWord(currentWord);
+
+        showMessage('new test started — type the word!', '#84a6e0');
+        typingInput.focus();
+    }
+
+    function skipWord() {
+        if (isTransitioning) return;
+        if (typingInput.disabled) return;
+
+        isTransitioning = true;
+
+        wordStatus[currentIndex] = 'skipped';
+        sessionSkippedCount++;
+        skippedStat.textContent = sessionSkippedCount;
+
+        showMessage(`⏭ skipped: "${currentWord}"`, '#f0c674');
+        renderWordStream();
+
+        typingInput.disabled = true;
+
+        setTimeout(() => {
+            typingInput.disabled = false;
+            moveToNextWord();
+            isTransitioning = false;
+            typingInput.focus();
+        }, 250);
+    }
+
     function onTypingInput() {
         if (isTransitioning) return;
+        if (currentIndex === -1) return;
 
-        const typed = typingInput.value;
+        if (!testStartTime) {
+            startWpmTracking();
+            startTimerTracking();
+        }
+
+        // 🔥 FIX: leading/trailing spaces trim karo comparison ke liye
+        const rawTyped = typingInput.value;
+        const typed = rawTyped.trim();
         const target = currentWord;
 
         let attemptErrors = 0;
-        let attemptCorrect = 0;
-
         const minLength = Math.min(typed.length, target.length);
         for (let i = 0; i < minLength; i++) {
-            if (typed[i] === target[i]) {
-                attemptCorrect++;
-            } else {
-                attemptErrors++;
-            }
+            if (typed[i] !== target[i]) attemptErrors++;
         }
         if (typed.length > target.length) {
             attemptErrors += typed.length - target.length;
@@ -690,10 +1284,13 @@ Zimbabwe
 
         updateStatsDisplay();
 
+        // ✅ CORRECT — auto next
         if (typed === target && typed.length > 0) {
             typingInput.classList.add('correct-glow');
             typingInput.classList.remove('error-glow');
-            wordDisplay.classList.add('correct-highlight');
+            wordStatus[currentIndex] = 'done';
+            renderWordStream();
+            updateProgressBadge();
 
             showMessage('✓ correct! next word...', '#9fda8f');
 
@@ -702,86 +1299,166 @@ Zimbabwe
 
             setTimeout(() => {
                 typingInput.disabled = false;
-                loadNextWord();
+                moveToNextWord();
                 isTransitioning = false;
                 typingInput.focus();
             }, 150);
             return;
-        } else {
-            typingInput.classList.remove('correct-glow');
-            if (attemptErrors > 0) {
-                typingInput.classList.add('error-glow');
-            } else {
-                typingInput.classList.remove('error-glow');
-            }
-            wordDisplay.classList.remove('correct-highlight');
+        }
 
+        typingInput.classList.remove('correct-glow');
+
+        // 🔥 Agar sirf space(s) type kiya hai, to error mat dikhao
+        if (typed.length === 0 && rawTyped.length > 0) {
+            typingInput.classList.remove('error-glow');
+            if (wordStatus[currentIndex] === 'error') {
+                wordStatus[currentIndex] = 'active';
+                renderWordStream();
+            }
+            showMessage('', '#8a9bb8');
+            updateProgressBadge();
+            return;
+        }
+
+        if (attemptErrors > 0 && typed.length > 0) {
+            typingInput.classList.add('error-glow');
+            wordStatus[currentIndex] = 'error';
+            renderWordStream();
+            showMessage('❌ wrong — fix it or press Enter', '#c76b6b');
+        } else {
+            typingInput.classList.remove('error-glow');
+            if (wordStatus[currentIndex] === 'error') {
+                wordStatus[currentIndex] = 'active';
+                renderWordStream();
+            }
             if (typed.length === 0) {
                 showMessage('', '#8a9bb8');
             } else if (typed.length < target.length) {
                 showMessage('keep going...', '#8a9bb8');
-            } else if (typed.length >= target.length && typed !== target) {
-                showMessage('❌ not quite — fix or clear', '#c76b6b');
             }
-        }
-
-        if (typed.length > target.length) {
-            typingInput.classList.add('error-glow');
-            wordDisplay.classList.remove('correct-highlight');
-            showMessage('⚠️ too many characters', '#c76b6b');
         }
 
         updateProgressBadge();
     }
 
-    // ----- keyboard shortcut: Alt + S to skip -----
-    function onKeyDown(e) {
+    // ============================================================
+    // 🔥 KEY HANDLER: Enter = skip wrong word + next
+    // ============================================================
+    function onKeyDownHandler(e) {
+        // Alt+S → skip
         if (e.altKey && (e.key === 's' || e.key === 'S')) {
             e.preventDefault();
             skipWord();
-        }
-    }
-
-    // ----- init -----
-    function init() {
-        if (!WORD_LIST || WORD_LIST.length === 0) {
-            wordDisplay.textContent = 'no words!';
-            showMessage('⚠️ RAW_WORDS me words add karo', '#c76b6b');
             return;
         }
 
-        progressBadge.textContent = `1 / ${WORD_LIST.length}`;
+        // 🔥 Enter → wrong/skipped word + next
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (isTransitioning) return;
+            if (typingInput.disabled) return;
+            if (currentIndex === -1) return;
 
-        availableWords = shuffleArray(WORD_LIST);
-        currentWord = availableWords.shift();
-        wordDisplay.textContent = currentWord;
+            // agar word already correct hai to Enter se next
+            // agar wrong hai to skip + count
+            const rawTyped = typingInput.value;
+            const typed = rawTyped.trim();
+            const target = currentWord;
 
-        sessionTotalTyped = 0;
-        sessionErrorCount = 0;
-        sessionSkippedCount = 0;
-        currentAttemptTotalTyped = 0;
-        currentAttemptErrors = 0;
-        isTransitioning = false;
+            if (typed === target && typed.length > 0) {
+                // correct hai to done mark karo
+                wordStatus[currentIndex] = 'done';
+                showMessage(`✓ correct: "${currentWord}"`, '#9fda8f');
+            } else {
+                // wrong/incomplete → skipped me count
+                wordStatus[currentIndex] = 'skipped';
+                sessionSkippedCount++;
+                skippedStat.textContent = sessionSkippedCount;
+                showMessage(`⏭ skipped: "${currentWord}"`, '#f0c674');
+            }
+
+            renderWordStream();
+            updateProgressBadge();
+
+            isTransitioning = true;
+            typingInput.disabled = true;
+
+            setTimeout(() => {
+                typingInput.disabled = false;
+                moveToNextWord();
+                isTransitioning = false;
+                typingInput.focus();
+            }, 180);
+            return;
+        }
+    }
+
+    function toggleVoice() {
+        if (!('speechSynthesis' in window)) return;
+
+        voiceEnabled = !voiceEnabled;
+
+        if (voiceEnabled) {
+            speakToggle.classList.remove('off');
+            speakToggle.classList.add('on');
+            speakIcon.textContent = '🔊';
+            speakLabel.textContent = 'Voice ON';
+            speakWord(currentWord);
+        } else {
+            speakToggle.classList.remove('on');
+            speakToggle.classList.add('off');
+            speakIcon.textContent = '🔇';
+            speakLabel.textContent = 'Voice OFF';
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    function init() {
+        if (!WORD_LIST || WORD_LIST.length === 0) {
+            showMessage('⚠️ no words found', '#c76b6b');
+            return;
+        }
+
+        wordCountBadge.textContent = `${WORD_LIST.length} countries`;
+
+        allWords = shuffleArray(WORD_LIST);
+        wordStatus = new Array(allWords.length).fill('pending');
+
+        currentIndex = 0;
+        currentWord = allWords[0];
+        wordStatus[0] = 'active';
 
         typingInput.value = '';
         typingInput.disabled = false;
         typingInput.placeholder = 'type here...';
         typingInput.classList.remove('correct-glow', 'error-glow');
-        wordDisplay.classList.remove('correct-highlight', 'skip-highlight');
 
         updateStatsDisplay();
         updateProgressBadge();
+        renderWordStream();
 
-        showMessage('type the word above — press Alt + S to skip', '#8a9bb8');
+        setTimeout(() => {
+            speakWord(currentWord);
+        }, 500);
+
+        showMessage('type the word — auto next when complete', '#8a9bb8');
         typingInput.focus();
 
         typingInput.addEventListener('input', onTypingInput);
-        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keydown', onKeyDownHandler, true);
         skipBtn.addEventListener('click', skipWord);
+        speakBtn.addEventListener('click', () => speakWord(currentWord));
+        speakToggle.addEventListener('click', toggleVoice);
         restartBtn.addEventListener('click', () => {
             typingInput.disabled = false;
             typingInput.placeholder = 'type here...';
             restartTest();
+        });
+
+        playAgainBtn.addEventListener('click', () => restartTest());
+        closeResultBtn.addEventListener('click', () => hideResult());
+        resultOverlay.addEventListener('click', (e) => {
+            if (e.target === resultOverlay) hideResult();
         });
     }
 
